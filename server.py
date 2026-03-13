@@ -1,49 +1,61 @@
-from fastapi import FastAPI, Request, UploadFile, File, Response
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-
-from random import choice
+import json
+import os
 from uuid import uuid4
-from json import load
-from os import makedirs
-from pathlib import Path
-from shutil import copyfileobj
+from fastapi import Cookie, FastAPI, Form, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 website = Jinja2Templates(directory="website")
-UPLOAD_DIR = "uploads"
 
-makedirs(UPLOAD_DIR, exist_ok=True)
-
-with open("tasks.json", "r", encoding="utf-8") as f:
-    data = load(f)
+def load_users():
+    if not os.path.exists("users.json"):
+        return {}
+    try:
+        with open("users.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {}
 
 @app.get("/", response_class=HTMLResponse)
-async def get_home(request: Request, response: Response):
-    user_id = request.cookies.get("user_id")
+async def read_root(request: Request, user_id: str = Cookie(None)):
+    users = load_users()
     
-    if not user_id:
-        user_id = str(uuid4())
-    
-    task = choice(data["pool"])
-    res = website.TemplateResponse("index.html", {
-        "request": request,
-        "task_id": task["id"],
-        "task_name": task["name"],
-        "points": task["points"]
-    })
+    if user_id and user_id in users:
+        return website.TemplateResponse("index.html", {
+            "request": request,
+            "username": users[user_id]
+        })
+    else:
+        return website.TemplateResponse("home.html", {"request": request})
 
-    response.set_cookie(key="user_id", value=user_id, max_age=31536000)
+@app.post("/login")
+async def login(response: Response, username: str = Form(...)):
+    users = load_users()
+    
+    new_uuid = str(uuid4())
+    users[new_uuid] = username
+    
+    with open("users.json", "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=4)
+        
+    res = RedirectResponse(url="/", status_code=303)
+    res.set_cookie(key="user_id", value=new_uuid, max_age=31536000)
     return res
 
-@app.post("/task_complete/{task_id}")
-async def complete_task(request: Request, task_id: str, file: UploadFile = File(...)):
-    user_id = request.cookies.get("user_id", "anonymous")
-    clean_filename = Path(file.filename).name
 
-    save_filename = f"user_{user_id}_task_{task_id}_{clean_filename}"
-    file_path = Path(UPLOAD_DIR) / save_filename
 
-    with open(file_path, "wb") as buffer:
-        copyfileobj(file.file, buffer)
-    return {"message": "Фото успішно завантажено!"}
+@app.post("/login")
+async def login(response: Response, username: str = Form(...)):
+    users = load_users()
+    
+    new_uuid = str(uuid4())
+    users[new_uuid] = username
+    
+    with open("users.json", "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=4)
+        
+    res = RedirectResponse(url="/", status_code=303)
+    res.set_cookie(key="user_id", value=new_uuid, max_age=31536000)
+    return res
