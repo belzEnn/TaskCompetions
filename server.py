@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request, UploadFile, File, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from requests import request
 from random import choice
 from uuid import uuid4
 from json import load
@@ -36,3 +35,15 @@ async def get_home(request: Request, response: Response):
 
     response.set_cookie(key="user_id", value=user_id, max_age=31536000)
     return res
+
+@app.post("/task_complete/{task_id}")
+async def complete_task(request: Request, task_id: str, file: UploadFile = File(...)):
+    user_id = request.cookies.get("user_id", "anonymous")
+    clean_filename = Path(file.filename).name
+
+    save_filename = f"user_{user_id}_task_{task_id}_{clean_filename}"
+    file_path = Path(UPLOAD_DIR) / save_filename
+
+    with open(file_path, "wb") as buffer:
+        copyfileobj(file.file, buffer)
+    return {"message": "Фото успішно завантажено!"}
