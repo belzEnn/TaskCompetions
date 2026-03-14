@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашні Змагання</title>
+    <style>
+        :root { --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; --accent: #38bdf8; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: var(--card-bg); padding: 2rem; border-radius: 1.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center; }
+        input { width: 90%; padding: 12px; margin-bottom: 1rem; border-radius: 0.8rem; border: none; background: #334155; color: white; }
+        button { width: 100%; background: var(--accent); color: #000; border: none; padding: 12px; border-radius: 0.8rem; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        {% if not username %}
+            <h1>Вітаємо!</h1>
+            <p>Введи свій нікнейм, щоб почати:</p>
+            <form action="/login" method="post">
+                <input type="text" name="username" placeholder="Твій нікнейм" required>
+                <button type="submit">Увійти</button>
+            </form>
+        {% else %}
+            <h1>Завдання для {{ username }}</h1>
+            <div class="taskbox">
+                <p class="task-name">{{ task_name }}</p>
+                <p class="points">+{{ points }} балів</p>
+            </div>
+            <form action="/task_complete/{{ task_id }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" required>
+                <button type="submit">Здати завдання</button>
+            </form>
+        {% endif %}
+    </div>
+</body>
+</html>
